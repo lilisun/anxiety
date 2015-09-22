@@ -1,0 +1,317 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+    <title>anxiety prototype</title>
+	<script type="text/javascript" src="js/phaser.min.js"></script>
+    <link href='http://fonts.googleapis.com/css?family=Chewy' rel='stylesheet' type='text/css'>
+    <style type="text/css">
+        body {
+            margin: auto;
+            padding-top:5%;
+            background-color:#eee;
+            font-family: monospace;
+            font-size: 12pt;
+        }
+        canvas {
+            margin: auto;
+        }
+        #notes{
+            width:1163px;
+            margin:auto;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game"></div>
+    <br>
+    <div id="notes">
+        cwedits
+    </div>
+<script type="text/javascript">
+
+var game = new Phaser.Game(1163, 692, Phaser.AUTO, 'game', { preload: preload, create: create, update: update });
+
+function preload() {
+    game.load.spritesheet('outside', 'assets/outside_sheet.png', 1163, 692);
+    game.load.spritesheet('inside', 'assets/inside_sheet.png', 195, 313);
+    game.load.spritesheet('lining1', 'assets/lining1_sheet.png', 198, 324, 9);
+    game.load.image('shotC', 'assets/shotC.png');
+    game.load.image('shotV', 'assets/shotV.png');
+    game.load.image('shotN', 'assets/shotN.png');
+    game.load.image('shotM', 'assets/shotM.png');
+}
+
+var outer;
+var inner;
+var lining;
+var shot=[];
+var keysDown; //count of how many keys are down
+    
+var startKey; 
+var keys=[];
+var gamemode='title';
+
+var score=0;
+var time=0; //starts at a number, when it hits zero the level is over
+var maxTime=10000;
+    
+var keyText;
+var eText;
+var qText;
+var fText;
+var pText;
+var iText;
+var jText;
+var timeText;
+var instrucText;
+var resultsText;
+
+function create() {
+    game.stage.backgroundColor='#ffffff';
+
+    game.physics.startSystem(Phaser.Physics.ARCADE);
+
+
+    inner = game.add.sprite(495, 193, 'inside');
+    inner.animations.add('default',[0,1,2],8,true);
+    inner.animations.play('default');
+    game.physics.arcade.enable(inner);
+    inner.body.immovable=true;
+    inner.body.moves=false;
+
+    shot[0] = game.add.sprite(180, 300, 'shotC');
+    shot[1] = game.add.sprite(970, 300, 'shotN');
+    for (var i=0; i<shot.length; i++){
+        game.physics.arcade.enable(shot[i]);
+        // shot[i].body.gravity.y=200;
+        shot[i].body.collideWorldBounds = true;
+        // shot[i].visible=false;
+    }
+
+    lining = game.add.sprite(490, 193, 'lining1');
+    lining.animations.add('default',[0,1,2],8,true);
+    lining.animations.add('hit1',[3,4,5],8,true);
+    lining.animations.add('hit2',[6,7,8],8,true);
+    lining.animations.play('default');
+
+    outer = game.add.sprite(0, 0, 'outside');
+    outer.animations.add('default',[0,1,2],8,true);
+    outer.animations.play('default');
+
+    // score
+    time=maxTime;
+    timeText = game.add.text(500, 75, 'time left: ----', 
+                              { font: "16px monospace", 
+                               fill: "#000", 
+                               align: "left" });
+
+    keyText = game.add.text(500, 50, 'keys down:', 
+                              { font: "16px monospace", 
+                               fill: "#000", 
+                               align: "left" });
+    qText = game.add.text(630, 50, 'Q', 
+                              { font: "16px monospace", fill: "#000", align: "left" });
+    qText.visible=false;
+    rText = game.add.text(640, 50, 'R', 
+                              { font: "16px monospace", fill: "#000", align: "left" });
+    rText.visible=false;
+    pText = game.add.text(650, 50, 'P', 
+                              { font: "16px monospace", fill: "#000", align: "left" });
+    pText.visible=false;
+    uText = game.add.text(660, 50, 'U', 
+                              { font: "16px monospace", fill: "#000", align: "left" });
+    uText.visible=false;
+
+    //menu stuff
+    instrucText = game.add.text(350, 600, 'hold down Q R U P to start \n and keep holding them to maintain your exterior\n while using C N to fend off attacks to your interior', 
+                              { font: "16px monospace", 
+                               fill: "#000", 
+                               align: "left" });
+
+
+    endText = game.add.text(450, 150, 'you died. SPACE to try again', 
+                          { font: "16px monospace", 
+                           fill: "#000", 
+                           align: "left" });
+
+    //controls
+    startKey= game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+    startKey.onDown.add(startGame, this);
+
+    keys[0] = game.input.keyboard.addKey(Phaser.Keyboard.Q);
+    keys[1] = game.input.keyboard.addKey(Phaser.Keyboard.R);
+    keys[2] = game.input.keyboard.addKey(Phaser.Keyboard.P);
+    keys[3] = game.input.keyboard.addKey(Phaser.Keyboard.U);
+    keys[4] = game.input.keyboard.addKey(Phaser.Keyboard.C);
+    keys[5] = game.input.keyboard.addKey(Phaser.Keyboard.V);
+    keys[6] = game.input.keyboard.addKey(Phaser.Keyboard.N);
+    keys[7] = game.input.keyboard.addKey(Phaser.Keyboard.M);
+
+    for (var i=0; i<keys.length; i++){
+        keys[i].onDown.add(keyDown, this);
+        keys[i].onUp.add(keyUp, this);
+    }
+
+    keysDown=0;
+    
+}
+
+function startGame() {
+    console.log("start");
+    if (gamemode == "end"){
+        gamemode="title";
+    }
+}
+
+function keyDown(key){
+    if (true){//gamemode == "gameplay" || gamemode == "title"){
+        if (key.keyCode == Phaser.Keyboard.Q) {
+            console.log("hey. Q");
+            qText.visible=true;
+            keysDown++;
+        }
+        if (key.keyCode == Phaser.Keyboard.R) {
+            console.log("hey. R");
+            rText.visible=true;
+            keysDown++;
+        }
+        if (key.keyCode == Phaser.Keyboard.P) {
+            console.log("hey. P");
+            pText.visible=true;
+            keysDown++;
+        }
+        if (key.keyCode == Phaser.Keyboard.U) {
+            console.log("hey. U");
+            uText.visible=true;
+            keysDown++;
+        }
+
+        if (key.keyCode == Phaser.Keyboard.C) {
+            console.log("hey. C");
+            if (shot[0].body.velocity.x!=0){
+                shot[0].body.velocity.x=0;
+                shot[0].body.x=180;
+                shot[0].visible=false;
+            }
+        }
+        if (key.keyCode == Phaser.Keyboard.N) {
+            console.log("hey. N");
+            if (shot[1].body.velocity.x!=0){
+                shot[1].body.velocity.x=0;
+                shot[1].body.x=970;
+                shot[1].visible=false;
+            }
+        }
+    }
+    console.log(keysDown);
+}
+
+function keyUp(key){
+    if (true){//gamemode == "gameplay"){
+        console.log("any key loose");
+        if (key.keyCode == Phaser.Keyboard.Q) {
+            console.log("boo. Q");
+            qText.visible=false;
+            keysDown--;
+        }
+        if (key.keyCode == Phaser.Keyboard.R) {
+            console.log("boo. R");
+            rText.visible=false;
+            keysDown--;
+        }
+        if (key.keyCode == Phaser.Keyboard.P) {
+            console.log("boo. O");
+            pText.visible=false;
+            keysDown--;
+        }
+        if (key.keyCode == Phaser.Keyboard.U) {
+            console.log("boo. U");
+            uText.visible=false;
+            keysDown--;
+        }
+    }
+    console.log(keysDown);
+}
+
+function update() {
+    if ( gamemode == "title" ) { 
+        endText.visible=false;
+        if (keysDown==4){
+            gamemode = "gameplay";
+        }
+    }
+    else if ( gamemode == "gameplay" ) { 
+        endText.visible=false;
+        play();        
+    } 
+    else if ( gamemode == "end" ) {
+        endText.visible=true;
+        time=maxTime;
+        // keysDown=0;
+    } 
+}
+
+function play(){
+    time--;
+    timeText.text = 'time left: '+time;
+
+    if (time<=0){
+        gamemode = "end";
+    }
+
+    if (keysDown==4){
+        lining.animations.play('default');
+    }
+    else if (keysDown<2){
+        //u died
+        gamemode = "end";
+    }
+    else if (keysDown<3){
+        lining.animations.play('hit2');
+    }else if (keysDown<4){
+        lining.animations.play('hit1');
+    }
+    
+    //shots
+    if (Math.random() < 0.05){
+        var index = Math.floor(Math.random() * shot.length);
+        if (shot[index].body.velocity.x==0){
+            direction = 1;
+            start=180;
+            if (index==1){
+                direction = -1;
+                start=970;
+            }
+            shot[index].visible=true;
+            shot[index].body.x=start;
+            shot[index].body.velocity.x=direction * 150;
+        }
+    }
+
+    game.physics.arcade.overlap(shot[0], inner, checkCollision, null, this)
+
+    // //check banana collision and fade them out
+    // for(var i=0; i<banana.length; i++){
+    //     game.physics.arcade.overlap(banana[i], trashcan, checkCollision, null, this)
+    //     game.physics.arcade.overlap(banana[i], ground, bananaSplat, null, this)
+    //     if (banana[i].alpha<1 && banana[i].visible){
+    //         banana[i].alpha -= 0.002;
+    //     }
+    //     if (banana[i].alpha<=0){
+    //         banana[i].visible=false;
+    //         banana[i].alpha=1;
+    //     }
+    // }
+}
+
+function checkCollision() {
+    console.log("check collision");
+    gamemode = "end";
+}
+
+</script>
+
+</body>
+</html>
